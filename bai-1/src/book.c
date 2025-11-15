@@ -1,38 +1,23 @@
 #include <stdio.h>
-#include "../header/book.h"
+#include <stdlib.h>
 #include <string.h>
-#define MAX 100
+#include "../header/book.h"
 
-enum STATUS {DONE, FAIL};   
-enum STATUS_CONVERT {ZERO, ONE, ERROR};
-
-/*
-    add_book: them sach
-*/
-typedef struct Book {
-    char tieu_de[100];
-    char tac_gia[100];
-    int ID;
-    int trang_thai_muon;
-} Book;
-typedef struct Slot { 
-    Book content[MAX];
-    int num;
-} Slot;
-
-
-Book *create_book(    
+Book* create_book(
     char tieu_de[100],
     char tac_gia[100],
-    int  ID,
-    int  trang_thai_muon
+    int ID,
+    int trang_thai_muon
 ) {
-    Book book;
-    strcpy(book.tieu_de, tieu_de);
-    strcpy(book.tac_gia, tac_gia);
-    book.ID = ID;
-    book.trang_thai_muon = trang_thai_muon;
-    return &book;
+    Book* book = (Book*)malloc(sizeof(Book));
+    if (book == NULL) {
+        return NULL;
+    }
+    strcpy(book->tieu_de, tieu_de);
+    strcpy(book->tac_gia, tac_gia);
+    book->ID = ID;
+    book->trang_thai_muon = trang_thai_muon;
+    return book;
 }
 
 enum STATUS add_book(Slot* slot, Book* book) {
@@ -44,7 +29,7 @@ enum STATUS add_book(Slot* slot, Book* book) {
     return DONE;
 }
 
-enum STATUS_CONVERT string_to_boolean (char in) {
+enum STATUS_CONVERT string_to_boolean(char in) {
     if (in == '0') 
         return ZERO;
     else if (in == '1') 
@@ -53,7 +38,7 @@ enum STATUS_CONVERT string_to_boolean (char in) {
         return ERROR; 
 }
 
-enum STATUS search_book (
+enum STATUS search_book(
     char search_criterion[],
     char search_content[], 
     Slot *slot,
@@ -61,56 +46,79 @@ enum STATUS search_book (
     int called_time
 ) {
     Slot* temp_slot;
-    if (0 == called_time) {
+    if (called_time == 0) {
         temp_slot = slot;
-    }
-    else if (0 < called_time) {
+    } else {
         temp_slot = search_slot;
     }
 
     if (temp_slot->num == 0) {
+        printf("No books found.\n");
         return FAIL;
     }
+    
+    search_slot->num = 0;
+    int found = 0;
+    
     for (int i = 0; i < temp_slot->num; i++) {
         Book book = temp_slot->content[i];
-        int check;
-        if ((strcmp(search_criterion, "tieu de")) && strcmp(search_content, book.tieu_de) ||
-            (strcmp(search_criterion, "tac_gia")) && strcmp(search_content, book.tac_gia) ||
-            (strcmp(search_criterion, "ID")) && string_to_boolean(search_content) == book.ID )  {
-            printf("Book title: %s", book.tieu_de);
-            printf("Book author: %s", book.tac_gia);
-            printf("Book ID: %d", book.ID);
-            printf("Book status: %d", book.trang_thai_muon);
-            add_book(temp_slot, &book);
+        int match = 0;
+        
+        if (strcmp(search_criterion, "tieu_de") == 0 && strcmp(search_content, book.tieu_de) == 0) {
+            match = 1;
+        } else if (strcmp(search_criterion, "tac_gia") == 0 && strcmp(search_content, book.tac_gia) == 0) {
+            match = 1;
+        } else if (strcmp(search_criterion, "ID") == 0 && atoi(search_content) == book.ID) {
+            match = 1;
         }
-        return DONE;
+        
+        if (match) {
+            printf("\n--- Book Found ---\n");
+            printf("Book title: %s\n", book.tieu_de);
+            printf("Book author: %s\n", book.tac_gia);
+            printf("Book ID: %d\n", book.ID);
+            printf("Book status: %s\n", book.trang_thai_muon ? "Borrowed" : "Available");
+            
+            if (called_time > 0) {
+                search_slot->content[search_slot->num] = book;
+                search_slot->num++;
+            }
+            found = 1;
+        }
     }
+    
+    return found ? DONE : FAIL;
 }
 
 enum STATUS change_book(Book* book, int element, char content[]) {
     switch (element) {
         case 0:
             strcpy(book->tieu_de, content);
-            break;
+            return DONE;
         case 1:
             strcpy(book->tac_gia, content);
-            break;
-        case 2:
-            enum STATUS_CONVERT ret_val = string_to_boolean(content);
-            if (ret_val == ERROR) 
+            return DONE;
+        case 2: {
+            enum STATUS_CONVERT ret_val = string_to_boolean(content[0]);
+            if (ret_val == ERROR) {
                 return FAIL;
-            else 
-                book->trang_thai_muon = ret_val;
-                return DONE;
-            break;
+            }
+            book->trang_thai_muon = ret_val;
+            return DONE;
+        }
+        default:
+            return FAIL;
     }
-    
 }
 
-enum STATUS del_book (Slot* slot, int book_del_order) {
-    for (int i = book_del_order; i < slot->num; i++) {
+enum STATUS del_book(Slot* slot, int book_del_order) {
+    if (book_del_order < 0 || book_del_order >= slot->num) {
+        return FAIL;
+    }
+    
+    for (int i = book_del_order; i < slot->num - 1; i++) {
         slot->content[i] = slot->content[i + 1];
     }
     slot->num--;
+    return DONE;
 }
-
