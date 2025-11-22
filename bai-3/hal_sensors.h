@@ -1,0 +1,11 @@
+#ifndef HAL_SENSORS_H
+#define HAL_SENSORS_H
+
+#include "config.h"
+
+void HAL_Sensors_Init(void);
+float HAL_ReadSoilMoisture(void);
+float HAL_ReadAirTemperature(void);
+void HAL_ReadAllSensors(SensorData_t* data);
+
+#endif
